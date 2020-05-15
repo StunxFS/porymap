@@ -31,6 +31,12 @@ class Editor : public QObject
     Q_OBJECT
 public:
     Editor(Ui::MainWindow* ui);
+    ~Editor();
+
+    Editor() = delete;
+    Editor(const Editor &) = delete;
+    Editor & operator = (const Editor &) = delete;
+
 public:
     Ui::MainWindow* ui;
     QObject *parent = nullptr;
@@ -45,7 +51,7 @@ public:
     bool setMap(QString map_name);
     void saveUiFields();
     void saveEncounterTabData();
-    void displayMap();
+    bool displayMap();
     void displayMetatileSelector();
     void displayMapMetatiles();
     void displayMapMovementPermissions();
@@ -60,10 +66,14 @@ public:
     void displayMapGrid();
     void displayWildMonTables();
 
+    void updateMapBorder();
+    void updateMapConnections();
+
     void setEditingMap();
     void setEditingCollision();
     void setEditingObjects();
     void setEditingConnections();
+    void setMapEditingButtonsEnabled(bool enabled);
     void clearWildMonTabWidgets();
     void setCurrentConnectionDirection(QString curDirection);
     void updateCurrentConnectionDirection(QString curDirection);
@@ -121,7 +131,6 @@ public:
     QList<DraggablePixmapItem*> *selected_events = nullptr;
 
     QString map_edit_mode;
-    QString prev_edit_mode;
 
     int scale_exp = 0;
     double scale_base = sqrt(2); // adjust scale factor with this
@@ -130,6 +139,8 @@ public:
     void objectsView_onMousePress(QMouseEvent *event);
     void objectsView_onMouseMove(QMouseEvent *event);
     void objectsView_onMouseRelease(QMouseEvent *event);
+
+    int getBorderDrawDistance(int dimension);
 
 private:
     void setConnectionItemsVisible(bool);
@@ -183,6 +194,7 @@ signals:
     void selectedObjectsChanged();
     void loadMapRequested(QString, QString);
     void tilesetChanged(QString);
+    void wildMonDataChanged();
     void warpEventDoubleClicked(QString mapName, QString warpNum);
     void currentMetatilesSelectionChanged();
     void wheelZoom(int delta);
