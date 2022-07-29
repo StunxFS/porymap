@@ -2,7 +2,7 @@ name: Build Porymap
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, linux-build ]
   pull_request:
     branches: [ master ]
 
