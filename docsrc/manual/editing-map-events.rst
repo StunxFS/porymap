@@ -9,7 +9,7 @@ Events are what bring your maps to life.  They include NPCs, signposts, warps, s
 
     Map Events View
 
-All of the events are visible on the map.  The Event Details window on the right displays the properties of the currently-selected event.  If you look closely, you'll see that the woman NPC near the Pokémon Center has a pink border around it because it's selected.  To select a different event, simple click on an event in the map area.  Alternatively, you can use the spinner at the top of the event properties window.  Multiple events can be selected at the same time by holding ``Ctrl`` and clicking another event.
+All of the events are visible on the map.  The Event Details window on the right displays the properties of the currently-selected event.  If you look closely, you'll see that the woman NPC near the Pokémon Center has a pink border around it because it's selected.  To select a different event, simply click on an event in the map area.  Alternatively, you can use the spinner at the top of the event properties window.  Multiple events can be selected at the same time by holding ``Ctrl`` and clicking another event.
 
 .. figure:: images/editing-map-events/event-id-spinner.png
     :alt: Event Id Spinner
@@ -18,6 +18,19 @@ All of the events are visible on the map.  The Event Details window on the right
 
 .. warning::
     There is currently no undo/redo functionality when editing events!  Use Git version control!
+
+Adding & Deleting Events
+------------------------
+
+To add a new event, press the green plus button. |add-event-button|  You can choose between the different types of events by clicking the small arrow on the right. You can also duplicate any currently selected events with ``Ctrl+D``.
+
+.. |add-event-button|
+   image:: images/editing-map-events/add-event-button.png
+
+To delete the selected event, press the delete button. |delete-event-button|
+
+.. |delete-event-button|
+   image:: images/editing-map-events/delete-event-button.png
 
 Event Positions
 ----------------
@@ -47,7 +60,7 @@ Object events are typically used for NPCs (non-player-characters).  More technic
     Object Event Properties
 
 Id
-    This is the local id of the object in the map.  Some script values use this local id to specify object when using scripting commands such as `applymovement`.
+    This is the local id of the object in the map.  Some script values use this local id to specify an object when using scripting commands such as `applymovement`.
 
 Sprite
     The sprite that is used by the object.
@@ -65,10 +78,32 @@ Event Flag
     The flag value that controls if the object is visible.  If the flag is set (equal to 1), then the object will be invisible.  If the Event Flag is set to `0`, then the object will always be visible because `0` means "no flag".
 
 Trainer Type
-    `NONE`, `NORMAL`, or `SEE ALL DIRECTIONS`. If the object is a trainer, `NORMAL` means that the trainer will spot the player in the object's line-of-sight.
+    The trainer type used by the object. If the object is a trainer, `TRAINER_TYPE_NORMAL` means that the trainer will spot the player in the object's line-of-sight.
 
 Sight Radius or Berry Tree ID
     If the object is a trainer, this property control how many tiles the trainer can see to spot the player for battle.  If the object is a berry tree, this specifies the global id of the berry tree.  Each berry tree in the game has a unique berry tree id.
+
+Clone Object Events
+-------------------
+
+Clone Object events are a special type of object that inherits its properties from another Object event. They are used in-game to load objects that are visible in the connecting area of adjacent maps. The targeted object to clone is specified by id and map name. If the targeted object does not exist, or it's also a clone, the sprite for graphics id 0 will be displayed instead. Double-clicking on a Clone Object will open the targeted map with the targeted object selected. This event type is exclusive to pokefirered projects; the code to process them does not exist in pokeemerald/pokeruby.
+
+.. figure:: images/editing-map-events/event-clone-object.png
+    :alt: Clone Object Event Properties
+
+    Clone Object Event Properties
+
+Id
+    This is the local id of the object in the map.  Some script values use this local id to specify an object when using scripting commands such as `applymovement`.
+
+Sprite
+    The sprite that is used by the object. Clone Objects inherit their sprite from the targeted object, so this cannot be edited. This field is not actually read by the game.
+
+Target Local Id
+    The local id of the object to be cloned.
+
+Target Map
+    The name of the map the object to be cloned is on.
 
 .. _event-warps:
 
@@ -116,7 +151,7 @@ Var Value
 Weather Trigger Events
 ----------------------
 
-Weather trigger events are a very specific type of trigger.  When the player walks over a weather trigger, the overworld's weather will transition to the specified weather type.
+Weather trigger events are a very specific type of trigger.  When the player walks over a weather trigger, the overworld's weather will transition to the specified weather type. This event type is unavailable for pokefirered projects; the functions to trigger weather changes were dummied out.
 
 .. figure:: images/editing-map-events/event-weather-trigger.png
     :alt: Weather Trigger Event Properties
@@ -167,10 +202,17 @@ Item
 Flag
     This flag is set when the player receives the hidden item.
 
+Quantity
+    Exclusive to pokefirered. The number of items received when the item is picked up.
+
+Requires Itemfinder
+    Exclusive to pokefirered. When checked, the hidden item can only be received by standing on it and using the Itemfinder.
+
 Secret Base Event
 -----------------
 
 This is the event used to mark entrances to secret bases.  This event will only be functional on certain metatiles.  Unfortunately, they are hardcoded into the game's engine (see ``sSecretBaseEntranceMetatiles`` in ``src/secret_base.c``).
+This event type is unavailable for pokefirered projects; secret bases do not exist there.
 
 .. figure:: images/editing-map-events/event-secret-base.png
     :alt: Secret Base Event Properties
@@ -183,23 +225,69 @@ Id
 Secret Base Id
     The id of the destination secret base.
 
-Adding & Deleting Events
-------------------------
+Heal Location / Healspots
+-------------------------
 
-To add a new event, press the green plus button. |add-event-button|  You can choose between the different types of events by clicking the small arrow on the right.
+This event is used to control where a player will arrive when they white out or fly to the map. The white out functions a little differently between game versions. For pokeemerald and pokeruby players will arrive at the event's coordinates after a white out, while in pokefirered they will arrive on the map set in ``Respawn Map`` and at hardcoded coordinates (see ``SetWhiteoutRespawnWarpAndHealerNpc`` in ``src/heal_location.c``).
 
-.. |add-event-button|
-   image:: images/editing-map-events/add-event-button.png
+.. figure:: images/editing-map-events/event-heal-location.png
+    :alt: Heal Location Properties
 
-To delete the selected event, press the delete button. |delete-event-button|
+    Heal Location Properties
 
-.. |delete-event-button|
-   image:: images/editing-map-events/delete-event-button.png
+Respawn Map
+    Exclusive to pokefirered. The map where the player will arrive when they white out (e.g. inside the PokéCenter that the heal location is in front of).
+
+Respawn NPC
+    Exclusive to pokefirered. The local id of the NPC the player will interact with when they white out.
 
 Open Map Scripts
 ----------------
 
-Clicking the ``Open Map Scripts`` button |open-map-scripts-button| will open the map's scripts file in your default text editor.  If nothing happens when this button is clicked, you may need to associate a text editor with the `.inc` file extension.
+Clicking the ``Open Map Scripts`` button |open-map-scripts-button| will open the map's scripts file in your default text editor.  If nothing happens when this button is clicked, you may need to associate a text editor with the `.inc` file extension (or `.pory` if you're using Porycript).
+
+Additionally, if you specify a ``Goto Line Command`` in *Options -> Edit Preferences* then a tool-button will appear next to the `Script` combo-box in the *Events* tab. Clicking this button will open the file that contains the script directly to the line number of that script. If the script cannot be found in the project then the current map's scripts file is opened.
+|go-to-script-button|
 
 .. |open-map-scripts-button|
    image:: images/editing-map-events/open-map-scripts-button.png
+
+.. |go-to-script-button|
+    image:: images/editing-map-events/go-to-script-button.png
+
+Tool Buttons
+------------
+
+The event editing tab also extends functionality to a few of the tool buttons described in :ref:`Editing Map Tiles <editing-map-tiles>`.
+A brief description and animation is listed for each of the available tools below:
+
+Pencil
+    When clicking on an existing event, the pencil tool will behave normally (as the standard cursor). It can also be used to "draw" events in a certain location. The event created will be a default-valued event of the same type as the currently selected event. Right-clicking with the Pencil Tool will return to the Pointer tool.
+
+.. figure:: images/editing-map-events/event-tool-pencil.gif
+    :alt: Drawing Object Events with the Pencil Tool
+
+    Drawing Object Events with the Pencil Tool
+
+Pointer
+    The Pointer Tool is the default tool for the event editing tab and allows you to select and move events on the map. The Pointer Tool also gives you access to the :ref:`Ruler Tool <ruler-tool>`.
+
+Shift
+    You can use the Shift Tool to move any number of events together. When a selected event is dragged, all other selected events will move with it. When a tile with no event is clicked, all events on the map can be dragged.
+
+.. figure:: images/editing-map-events/event-tool-shift.gif
+    :alt: Moving Events with the Shift Tool
+
+    Moving Events with the Shift Tool
+
+.. _ruler-tool:
+
+Ruler Tool
+----------
+
+The Ruler Tool provides a convenient way to measure distance on the map. This is particularly useful for scripting object movement. With the Pointer Tool selected you can activate the ruler with a Right-click. With the ruler active you can move the mouse around to extend the ruler. The ruler can be deactivated with another Right-click, or locked in place with a Left-click (Left-click again to unlock the ruler).
+
+.. figure:: images/editing-map-events/event-tool-ruler.gif
+    :alt: Measuring metatile distance with the Ruler Tool
+
+    Measuring metatile distance with the Ruler Tool

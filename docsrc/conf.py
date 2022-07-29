@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = u'porymap'
-copyright = u'2019, huderlem'
+copyright = u'2020, huderlem'
 author = u'huderlem'
 
 # The short X.Y version
@@ -36,21 +36,17 @@ release = u''
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = []
+extensions = [
+    'recommonmark',
+    'sphinx.ext.githubpages',
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
-#
-
-from recommonmark.parser import CommonMarkParser
-
 source_suffix = ['.rst', '.md']
-source_parsers = {
-    '.md': CommonMarkParser,
-}
 
 # The master toctree document.
 master_doc = 'index'
@@ -102,6 +98,8 @@ html_context = {
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+html_favicon = '../resources/icons/porymap-icon-2.ico'
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.

@@ -3,20 +3,23 @@
 
 #include "selectablepixmapitem.h"
 #include "tileset.h"
+#include "map.h"
 
 class TilesetEditorMetatileSelector: public SelectablePixmapItem {
     Q_OBJECT
 public:
-    TilesetEditorMetatileSelector(Tileset *primaryTileset, Tileset *secondaryTileset): SelectablePixmapItem(32, 32, 1, 1) {
-        this->primaryTileset = primaryTileset;
-        this->secondaryTileset = secondaryTileset;
-        this->numMetatilesWide = 8;
-        setAcceptHoverEvents(true);
-    }
+    TilesetEditorMetatileSelector(Tileset *primaryTileset, Tileset *secondaryTileset, Map *map);
+    Map *map = nullptr;
     void draw();
-    void select(uint16_t metatileId);
-    void setTilesets(Tileset*, Tileset*);
-    uint16_t getSelectedMetatile();
+    bool select(uint16_t metatileId);
+    void setTilesets(Tileset*, Tileset*, bool draw = true);
+    uint16_t getSelectedMetatileId();
+    void updateSelectedMetatile();
+    QPoint getMetatileIdCoordsOnWidget(uint16_t metatileId);
+
+    QVector<uint16_t> usedMetatiles;
+    bool selectorShowUnused = false;
+    bool selectorShowCounts = false;
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent*);
@@ -30,10 +33,13 @@ private:
     Tileset *secondaryTileset = nullptr;
     uint16_t selectedMetatile;
     int numMetatilesWide;
-    void updateSelectedMetatile();
     uint16_t getMetatileId(int x, int y);
     QPoint getMetatileIdCoords(uint16_t);
-    uint16_t getValidMetatileId(uint16_t);
+    bool shouldAcceptEvent(QGraphicsSceneMouseEvent*);
+
+    void drawFilters();
+    void drawUnused();
+    void drawCounts();
 
 signals:
     void hoveredMetatileChanged(uint16_t);

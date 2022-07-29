@@ -1,3 +1,4 @@
+#pragma once
 #ifndef MAPLAYOUT_H
 #define MAPLAYOUT_H
 
@@ -23,14 +24,22 @@ public:
     QString tileset_secondary_label;
     Tileset *tileset_primary = nullptr;
     Tileset *tileset_secondary = nullptr;
-    Blockdata* blockdata = nullptr;
+    Blockdata blockdata;
     QImage border_image;
     QPixmap border_pixmap;
-    Blockdata *border = nullptr;
-    Blockdata *cached_blockdata = nullptr;
-    Blockdata *cached_collision = nullptr;
-    Blockdata *cached_border = nullptr;
-    bool has_unsaved_changes = false;
+    Blockdata border;
+    Blockdata cached_blockdata;
+    Blockdata cached_collision;
+    Blockdata cached_border;
+    struct {
+        Blockdata blocks;
+        QSize dimensions;
+    } lastCommitMapBlocks; // to track map changes
+
+    int getWidth();
+    int getHeight();
+    int getBorderWidth();
+    int getBorderHeight();
 };
 
 #endif // MAPLAYOUT_H

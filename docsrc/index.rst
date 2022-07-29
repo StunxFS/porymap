@@ -16,8 +16,13 @@ Porymap Documentation
     manual/editing-map-header
     manual/editing-map-connections
     manual/editing-wild-encounters
+    manual/creating-new-maps
     manual/region-map-editor
+    manual/tileset-editor
+    manual/scripting-capabilities
     manual/project-files
+    manual/shortcuts
+    manual/settings-and-options
 
 .. toctree::
     :maxdepth: 2

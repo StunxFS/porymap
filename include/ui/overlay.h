@@ -10,7 +10,7 @@ class OverlayItem {
 public:
     OverlayItem() {}
     virtual ~OverlayItem() {};
-    virtual void render(QPainter *painter) {};
+    virtual void render(QPainter *, int, int) {};
 };
 
 class OverlayText : public OverlayItem {
@@ -23,7 +23,7 @@ public:
         this->fontSize = fontSize;
     }
     ~OverlayText() {}
-    virtual void render(QPainter *painter);
+    virtual void render(QPainter *painter, int x, int y);
 private:
     QString text;
     int x;
@@ -43,7 +43,7 @@ public:
         this->filled = filled;
     }
     ~OverlayRect() {}
-    virtual void render(QPainter *painter);
+    virtual void render(QPainter *painter, int x, int y);
 private:
     int x;
     int y;
@@ -61,7 +61,7 @@ public:
         this->image = image;
     }
     ~OverlayImage() {}
-    virtual void render(QPainter *painter);
+    virtual void render(QPainter *painter, int x, int y);
 private:
     int x;
     int y;
@@ -71,17 +71,38 @@ private:
 class Overlay
 {
 public:
-    Overlay() {}
+    Overlay() {
+        this->x = 0;
+        this->y = 0;
+        this->hidden = false;
+        this->opacity = 1.0;
+    }
     ~Overlay() {
         this->clearItems();
     }
+    bool getHidden();
+    void setHidden(bool hidden);
+    int getOpacity();
+    void setOpacity(int opacity);
+    int getX();
+    int getY();
+    void setX(int x);
+    void setY(int y);
+    void setPosition(int x, int y);
+    void move(int deltaX, int deltaY);
+    void renderItems(QPainter *painter);
     QList<OverlayItem*> getItems();
     void clearItems();
     void addText(QString text, int x, int y, QString color = "#000000", int fontSize = 12);
     void addRect(int x, int y, int width, int height, QString color = "#000000", bool filled = false);
-    void addImage(int x, int y, QString filepath);
+    bool addImage(int x, int y, QString filepath, bool useCache = true, int width = -1, int height = -1, unsigned offset = 0, bool xflip = false, bool yflip = false, QList<QRgb> palette = QList<QRgb>(), bool setTransparency = false);
+    bool addImage(int x, int y, QImage image);
 private:
     QList<OverlayItem*> items;
+    int x;
+    int y;
+    bool hidden;
+    qreal opacity;
 };
 
 #endif // OVERLAY_H

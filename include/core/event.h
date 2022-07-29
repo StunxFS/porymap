@@ -1,3 +1,4 @@
+#pragma once
 #ifndef EVENT_H
 #define EVENT_H
 
@@ -13,6 +14,7 @@ class EventType
 {
 public:
     static QString Object;
+    static QString CloneObject;
     static QString Warp;
     static QString Trigger;
     static QString WeatherTrigger;
@@ -22,17 +24,29 @@ public:
     static QString HealLocation;
 };
 
+class EventGroup
+{
+public:
+    static QString Object;
+    static QString Warp;
+    static QString Coord;
+    static QString Bg;
+    static QString Heal;
+};
+
+class DraggablePixmapItem;
 class Project;
 class Event
 {
 public:
     Event();
+    Event(const Event&);
     Event(QJsonObject, QString);
 public:
-    int x() {
+    int x() const {
         return getInt("x");
     }
-    int y() {
+    int y() const {
         return getInt("y");
     }
     int elevation() {
@@ -44,16 +58,16 @@ public:
     void setY(int y) {
         put("y", y);
     }
-    QString get(QString key) {
+    QString get(const QString &key) const {
         return values.value(key);
     }
-    int getInt(QString key) {
+    int getInt(const QString &key) const {
         return values.value(key).toInt(nullptr, 0);
     }
-    uint16_t getU16(QString key) {
+    uint16_t getU16(const QString &key) const {
         return values.value(key).toUShort(nullptr, 0);
     }
-    int16_t getS16(QString key) {
+    int16_t getS16(const QString &key) const {
         return values.value(key).toShort(nullptr, 0);
     }
     void put(QString key, int value) {
@@ -65,6 +79,7 @@ public:
 
     static Event* createNewEvent(QString, QString, Project*);
     static Event* createNewObjectEvent(Project*);
+    static Event* createNewCloneObjectEvent(Project*, QString);
     static Event* createNewWarpEvent(QString);
     static Event* createNewHealLocationEvent(QString);
     static Event* createNewTriggerEvent(Project*);
@@ -72,18 +87,22 @@ public:
     static Event* createNewSignEvent(Project*);
     static Event* createNewHiddenItemEvent(Project*);
     static Event* createNewSecretBaseEvent(Project*);
+    static bool isValidType(QString event_type);
+    static QString typeToGroup(QString event_type);
+    static int getIndexOffset(QString group_type);
 
     OrderedJson::object buildObjectEventJSON();
-    OrderedJson::object buildWarpEventJSON(QMap<QString, QString>*);
+    OrderedJson::object buildCloneObjectEventJSON(const QMap<QString, QString> &);
+    OrderedJson::object buildWarpEventJSON(const QMap<QString, QString> &);
     OrderedJson::object buildTriggerEventJSON();
     OrderedJson::object buildWeatherTriggerEventJSON();
     OrderedJson::object buildSignEventJSON();
     OrderedJson::object buildHiddenItemEventJSON();
     OrderedJson::object buildSecretBaseEventJSON();
-    void setPixmapFromSpritesheet(QImage, int, int, int, bool);
+    void setPixmapFromSpritesheet(QImage, int, int, bool);
     int getPixelX();
     int getPixelY();
-    QMap<QString, bool> getExpectedFields();
+    QSet<QString> getExpectedFields();
     void readCustomValues(QJsonObject values);
     void addCustomValuesTo(OrderedJson::object *obj);
     void setFrameFromMovement(QString);
@@ -96,6 +115,9 @@ public:
     int frame = 0;
     bool hFlip = false;
     bool usingSprite;
+
+    DraggablePixmapItem *pixmapItem = nullptr;
+    void setPixmapItem(DraggablePixmapItem *item) { pixmapItem = item; }
 };
 
 #endif // EVENT_H

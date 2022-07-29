@@ -7,13 +7,145 @@ and this project somewhat adheres to [Semantic Versioning](https://semver.org/sp
 The **"Breaking Changes"** listed below are changes that have been made in the decompilation projects (e.g. pokeemerald), which porymap requires in order to work properly. If porymap is used on a project that is not up-to-date with the breaking changes, then porymap will likely break or behave improperly.
 
 ## [Unreleased]
+### Breaking Changes
+- Proper support for pokefirered's clone objects was added, which requires the changes made in [pokefirered/#484](https://github.com/pret/pokefirered/pull/484).
+
+### Added
+- Add Copy/Paste for metatiles in the Tileset Editor.
+- Add ability to set the opacity of the scripting overlay.
+- Add ability to get/set map header properties and read tile pixel data via the API.
+- Add button to copy the full metatile label to the clipboard in the Tileset Editor.
+- Add option to not open the most recent project on launch.
+- Add color picker to palette editor for taking colors from the screen.
+
+### Changed
+- If an object event is inanimate, it will always render using its first frame.
+- Only log "Unknown custom script function" when a registered script function is not present in any script.
+- Unused metatile attribute bits that are set are preserved instead of being cleared.
+- The wild encounter editor is automatically disabled if the encounter JSON data cannot be read
+- Overhauled the region map editor, adding support for tilemaps, and significant customization. Also now supports pokefirered.
+- Metatiles are always rendered accurately with 3 layers, and the unused layer is not assumed to be transparent.
+- `object_event_graphics_info.h` can now be parsed correctly if it uses structs with attributes.
+- Palette editor ui is updated a bit to allow hex and rgb value input.
+
+### Fixed
+- Fix cursor tile outline not updating at the end of a dragged selection.
+- Fix cursor tile and player view outlines exiting map bounds while painting.
+- Fix cursor tile and player view outlines not updating immediately when toggled in Collision view.
+- Fix selected space not updating while painting in Collision view.
+- Fix the map music dropdown being empty when importing a map from Advance Map.
+- Fixed a bug where saving the tileset editor would reselect the main editor's first selected metatile.
+
+## [4.5.0] - 2021-12-26
+### Added
+- WSL project paths are now supported. (For example, \wsl$\Ubuntu-20.04\home\huderlem\pokeemerald)
+- Add ability to export map timelapse animated GIFs with `File -> Export Map Timelapse Image...`.
+- Add tool to count the times each metatile or tile is used in the tileset editor.
+- Events, current metatile selections, and map images can now be copied and pasted, including between windows.
+- The grid and map border visibility are now saved as config options.
+- Add ~60 new scripting API functions, including new features like reading/writing metatile data, layering, moving, and hiding items in the overlay, creating modified images and tile/metatile images, reading tileset sizes, logging warnings and errors, and more.
+- Add 7 new scripting API callbacks.
+- Porymap is now compatible with Qt6.
+
+### Changed
+- New events will be placed in the center of the current view of the map.
+- Scripting API errors are more detailed and logged in more situations.
+- Add new optional arguments to 5 existing API functions.
+- Top-level UI elements now render above the scripting overlay.
+- The onBlockChanged script callback is now called for blocks changed by Undo/Redo.
+
+### Fixed
+- Fix % operator in C defines not being evaluated
+- Fix tileset palette editor crash that could occur when switching maps or tilesets with it open.
+- The metatile selection is no longer reset if it becomes invalid by changing the tileset. Invalid metatiles in the selection will be temporarily replaced with metatile 0.
+- Loading wild encounters will now properly preserve the original order, so saving the file will not give huge diffs.
+- Fix bug where the tile selection cursor could be toggld on in the Events tab.
+
+## [4.4.0] - 2020-12-20
+### Added
+- Add undoable edit history for Events tab.
+- Add keyboard shortcut for `DEL` key to delete the currently selected event(s).
+- Disable ui while there is no open project to prevent crashing.
+- Add "Straight Paths" feature for drawing straight lines while holding `Ctrl`.
+- The New Map dialog now gives an option to specify the "Show Location Name" field.
+- Some new shortcuts were added in [porymap/#290](https://github.com/huderlem/porymap/pull/290).
+- All plain text boxes now have a clear button to delete the text.
+- The window sizes and positions of the tileset editor, palette editor, and region map editor are now stored in `porymap.cfg`.
+- Add ruler tool for measuring metatile distance in events tab (Right-click to turn on/off, left-click to lock in place).
+- Add delete button to wild pokemon encounters tab.
+- Add shortcut customization via `Options -> Edit Shortcuts`.
+- Add custom text editor commands in `Options -> Edit Preferences`, a tool-button next to the `Script` combo-box, and `Tools -> Open Project in Text Editor`. The tool-button will open the containing file to the cooresponding script.
+
+### Changed
+- Holding `shift` now toggles "Smart Path" drawing; when the "Smart Paths" checkbox is checked, holding `shift` will temporarily disable it.
+
+### Fixed
+- Fix a bug with the current metatile selection zoom.
+- Fix bug preventing the status bar from updating the current position while dragging events.
+- Fix porymap icon not showing on window or panel on Linux.
+- The main window can now be resized to fit on lower resolution displays.
+- Zooming the map in/out will now focus on the cursor.
+- Fix bug where object event sprites whose name contained a 0 character would display the placeholder "N" picture.
+
+## [4.3.1] - 2020-07-17
+### Added
+- Add keyboard shortcut `Ctrl + D` for duplicating map events.
+- Add keyboard shortcut `Ctrl + Shift + Z` for "redo" in the tileset editor.
+- Add scripting api to reorder metatile layers and draw them with opacity.
+
+### Changed
+- The tileset editor now syncs its metatile selection with the map's metatile selector.
+- The number of object events per map is now limited to OBJECT_EVENT_TEMPLATES_COUNT
+- The tileset editor can now flip selections that were taken from an existing metatile.
+
+### Fixed
+- Fix bug where editing a metatile layer would have no effect.
+- Fix a crash that occured when creating a new tileset using triple layer mode.
+- Fix crash when reducing number of metatiles past current selection.
+- Fix various methods of selecting invalid metatiles.
+- Fix sprite transparency not updating when changing object event graphics.
+- Fix dropdown menu item selection when using the arrow keys.
+
+## [4.3.0] - 2020-06-27
+### Added
+- Add triple-layer metatiles support.
+
+### Changed
+- The "Open Scripts" button will fall back to `scripts.inc` if `scripts.pory` doesn't exist. 
+
+### Fixed
+- Fix bug where exported tileset images could be horizontally or vertically flipped.
+- Fix bug where the map list wasn't filtered properly after switching filter types.
+- Don't zoom in map when mouse middle button is pressed.
+
+## [4.2.0] - 2020-06-06
+### Added
+- Add more project-specific configs to better support porting features from different projects.
+- Add metatile label names to the status bar when hovering over metatiles in the map editor tab.
+- Add mouse coordinates to the status bar when hovering in the events tab.
+
+### Changed
+- `metatile_labels.h` is now watched for changes.
+
+### Fixed
+- Reduce time it takes to load maps and save in the tileset editor.
+- Fix crash that could occur when parsing unknown symbols when evaluating `define` expressions.
+
+## [4.1.0] - 2020-05-18
 ### Added
 - Add scripting capabilities, which allows the user to add custom behavior to Porymap using JavaScript scripts.
 - Add ability to import FRLG tileset .bvd files from Advance Map 1.92.
 
+### Changed
+- Edit modes are no longer shared between the Map and Events tabs. Pencil is default for Map tab, and Pointer is default for Events tab.
+
 ### Fixed
 - Disallow drawing new heal locations in the events tab.
 - Fix issue where the metatile selection window was not resizable.
+- Show warning when closing project with unsaved wild Pokémon changes.
+- Fix bug where negative object event coordinates were saved as "0".
+- Fix maximum map dimension limits.
+- Fix crash when using the Pencil tool to create an event on a map with no existing events.
 
 ## [4.0.0] - 2020-04-28
 ### Breaking Changes
@@ -181,7 +313,13 @@ The **"Breaking Changes"** listed below are changes that have been made in the d
 ## [1.0.0] - 2018-10-26
 This was the initial release.
 
-[Unreleased]: https://github.com/huderlem/porymap/compare/4.0.0...HEAD
+[Unreleased]: https://github.com/huderlem/porymap/compare/4.5.0...HEAD
+[4.5.0]: https://github.com/huderlem/porymap/compare/4.4.0...4.5.0
+[4.4.0]: https://github.com/huderlem/porymap/compare/4.3.1...4.4.0
+[4.3.1]: https://github.com/huderlem/porymap/compare/4.3.0...4.3.1
+[4.3.0]: https://github.com/huderlem/porymap/compare/4.2.0...4.3.0
+[4.2.0]: https://github.com/huderlem/porymap/compare/4.1.0...4.2.0
+[4.1.0]: https://github.com/huderlem/porymap/compare/4.0.0...4.1.0
 [4.0.0]: https://github.com/huderlem/porymap/compare/3.0.1...4.0.0
 [3.0.1]: https://github.com/huderlem/porymap/compare/3.0.0...3.0.1
 [3.0.0]: https://github.com/huderlem/porymap/compare/2.0.0...3.0.0

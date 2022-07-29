@@ -2,40 +2,72 @@
 #include "tileset.h"
 #include "project.h"
 
-Metatile::Metatile()
-{
-    tiles = new QList<Tile>;
-}
+Metatile::Metatile() :
+    behavior(0),
+    layerType(0),
+    encounterType(0),
+    terrainType(0),
+    unusedAttributes(0)
+{  }
 
-Metatile* Metatile::copy() {
-    Metatile *copy = new Metatile;
-    copy->behavior = this->behavior;
-    copy->layerType = this->layerType;
-    copy->encounterType = this->encounterType;
-    copy->terrainType = this->terrainType;
-    copy->tiles = new QList<Tile>;
-    copy->label = this->label;
-    for (Tile tile : *this->tiles) {
-        copy->tiles->append(tile);
-    }
-    return copy;
-}
-
-void Metatile::copyInPlace(Metatile *other) {
-    this->behavior = other->behavior;
-    this->layerType = other->layerType;
-    this->encounterType = other->encounterType;
-    this->terrainType = other->terrainType;
-    this->label = other->label;
-    for (int i = 0; i < this->tiles->length(); i++) {
-        (*this->tiles)[i] = other->tiles->at(i);
-    }
-}
-
-int Metatile::getBlockIndex(int index) {
-    if (index < Project::getNumMetatilesPrimary()) {
-        return index;
+int Metatile::getIndexInTileset(int metatileId) {
+    if (metatileId < Project::getNumMetatilesPrimary()) {
+        return metatileId;
     } else {
-        return index - Project::getNumMetatilesPrimary();
+        return metatileId - Project::getNumMetatilesPrimary();
+    }
+}
+
+QPoint Metatile::coordFromPixmapCoord(const QPointF &pixelCoord) {
+    int x = static_cast<int>(pixelCoord.x()) / 16;
+    int y = static_cast<int>(pixelCoord.y()) / 16;
+    return QPoint(x, y);
+}
+
+int Metatile::getAttributesSize(BaseGameVersion version) {
+    return (version == BaseGameVersion::pokefirered) ? 4 : 2;
+}
+
+// RSE attributes
+const uint16_t behaviorMask_RSE  = 0x00FF;
+const uint16_t layerTypeMask_RSE = 0xF000;
+const int behaviorShift_RSE = 0;
+const int layerTypeShift_RSE = 12;
+
+// FRLG attributes
+const uint32_t behaviorMask_FRLG  = 0x000001FF;
+const uint32_t terrainTypeMask    = 0x00003E00;
+const uint32_t encounterTypeMask  = 0x07000000;
+const uint32_t layerTypeMask_FRLG = 0x60000000;
+const int behaviorShift_FRLG = 0;
+const int terrainTypeShift = 9;
+const int encounterTypeShift = 24;
+const int layerTypeShift_FRLG = 29;
+
+uint32_t Metatile::getAttributes(BaseGameVersion version) {
+    uint32_t attributes = this->unusedAttributes;
+    if (version == BaseGameVersion::pokefirered) {
+        attributes |= (behavior << behaviorShift_FRLG) & behaviorMask_FRLG;
+        attributes |= (terrainType << terrainTypeShift) & terrainTypeMask;
+        attributes |= (encounterType << encounterTypeShift) & encounterTypeMask;
+        attributes |= (layerType << layerTypeShift_FRLG) & layerTypeMask_FRLG;
+    } else {
+        attributes |= (behavior << behaviorShift_RSE) & behaviorMask_RSE;
+        attributes |= (layerType << layerTypeShift_RSE) & layerTypeMask_RSE;
+    }
+    return attributes;
+}
+
+void Metatile::setAttributes(uint32_t data, BaseGameVersion version) {
+    if (version == BaseGameVersion::pokefirered) {
+        this->behavior = (data & behaviorMask_FRLG) >> behaviorShift_FRLG;
+        this->terrainType = (data & terrainTypeMask) >> terrainTypeShift;
+        this->encounterType = (data & encounterTypeMask) >> encounterTypeShift;
+        this->layerType = (data & layerTypeMask_FRLG) >> layerTypeShift_FRLG;
+        this->unusedAttributes = data & ~(behaviorMask_FRLG | terrainTypeMask | layerTypeMask_FRLG | encounterTypeMask);
+    } else {
+        this->behavior = (data & behaviorMask_RSE) >> behaviorShift_RSE;
+        this->layerType = (data & layerTypeMask_RSE) >> layerTypeShift_RSE;
+        this->unusedAttributes = data & ~(behaviorMask_RSE | layerTypeMask_RSE);
     }
 }

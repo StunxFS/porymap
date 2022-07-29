@@ -5,8 +5,7 @@
 #include "metatileselector.h"
 #include <QGraphicsPixmapItem>
 
-class CurrentSelectedMetatilesPixmapItem : public QObject, public QGraphicsPixmapItem {
-    Q_OBJECT
+class CurrentSelectedMetatilesPixmapItem : public QGraphicsPixmapItem {
 public:
     CurrentSelectedMetatilesPixmapItem(Map *map, MetatileSelector *metatileSelector) {
         this->map = map;
@@ -15,6 +14,8 @@ public:
     Map* map = nullptr;
     MetatileSelector *metatileSelector;
     void draw();
+
+    void setMap(Map *map) { this->map = map; }
 };
 
 #endif // CURRENTSELECTEDMETATILESPIXMAPITEM_H

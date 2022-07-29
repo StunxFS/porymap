@@ -1,8 +1,9 @@
 #include "history.h"
-#include "historyitem.h"
 #include "map.h"
 #include "imageproviders.h"
 #include "scripting.h"
+
+#include "editcommands.h"
 
 #include <QTime>
 #include <QPainter>
@@ -12,6 +13,15 @@
 
 Map::Map(QObject *parent) : QObject(parent)
 {
+    editHistory.setClean();
+}
+
+Map::~Map() {
+    // delete all associated events
+    while (!ownedEvents.isEmpty()) {
+        Event *last = ownedEvents.takeLast();
+        if (last) delete last;
+    }
 }
 
 void Map::setName(QString mapName) {
@@ -53,112 +63,77 @@ QString Map::bgEventsLabelFromName(QString mapName)
 }
 
 int Map::getWidth() {
-    return layout->width.toInt(nullptr, 0);
+    return layout->getWidth();
 }
 
 int Map::getHeight() {
-    return layout->height.toInt(nullptr, 0);
+    return layout->getHeight();
 }
 
 int Map::getBorderWidth() {
-    return layout->border_width.toInt(nullptr, 0);
+    return layout->getBorderWidth();
 }
 
 int Map::getBorderHeight() {
-    return layout->border_height.toInt(nullptr, 0);
+    return layout->getBorderHeight();
 }
 
-bool Map::mapBlockChanged(int i, Blockdata * cache) {
-    if (!cache)
+bool Map::mapBlockChanged(int i, const Blockdata &cache) {
+    if (cache.length() <= i)
         return true;
-    if (!layout->blockdata)
-        return true;
-    if (!cache->blocks)
-        return true;
-    if (!layout->blockdata->blocks)
-        return true;
-    if (cache->blocks->length() <= i)
-        return true;
-    if (layout->blockdata->blocks->length() <= i)
+    if (layout->blockdata.length() <= i)
         return true;
 
-    return layout->blockdata->blocks->value(i) != cache->blocks->value(i);
+    return layout->blockdata.at(i) != cache.at(i);
 }
 
-bool Map::borderBlockChanged(int i, Blockdata * cache) {
-    if (!cache)
+bool Map::borderBlockChanged(int i, const Blockdata &cache) {
+    if (cache.length() <= i)
         return true;
-    if (!layout->border)
-        return true;
-    if (!cache->blocks)
-        return true;
-    if (!layout->border->blocks)
-        return true;
-    if (cache->blocks->length() <= i)
-        return true;
-    if (layout->border->blocks->length() <= i)
+    if (layout->border.length() <= i)
         return true;
 
-    return layout->border->blocks->value(i) != cache->blocks->value(i);
+    return layout->border.at(i) != cache.at(i);
 }
 
 void Map::cacheBorder() {
-    if (layout->cached_border) delete layout->cached_border;
-    layout->cached_border = new Blockdata;
-    if (layout->border && layout->border->blocks) {
-        for (int i = 0; i < layout->border->blocks->length(); i++) {
-            Block block = layout->border->blocks->value(i);
-            layout->cached_border->blocks->append(block);
-        }
-    }
+    layout->cached_border.clear();
+    for (const auto &block : layout->border)
+        layout->cached_border.append(block);
 }
 
 void Map::cacheBlockdata() {
-    if (layout->cached_blockdata) delete layout->cached_blockdata;
-    layout->cached_blockdata = new Blockdata;
-    if (layout->blockdata && layout->blockdata->blocks) {
-        for (int i = 0; i < layout->blockdata->blocks->length(); i++) {
-            Block block = layout->blockdata->blocks->value(i);
-            layout->cached_blockdata->blocks->append(block);
-        }
-    }
+    layout->cached_blockdata.clear();
+    for (const auto &block : layout->blockdata)
+        layout->cached_blockdata.append(block);
 }
 
 void Map::cacheCollision() {
-    if (layout->cached_collision) delete layout->cached_collision;
-    layout->cached_collision = new Blockdata;
-    if (layout->blockdata && layout->blockdata->blocks) {
-        for (int i = 0; i < layout->blockdata->blocks->length(); i++) {
-            Block block = layout->blockdata->blocks->value(i);
-            layout->cached_collision->blocks->append(block);
-        }
-    }
+    layout->cached_collision.clear();
+    for (const auto &block : layout->blockdata)
+        layout->cached_collision.append(block);
 }
 
 QPixmap Map::renderCollision(qreal opacity, bool ignoreCache) {
     bool changed_any = false;
     int width_ = getWidth();
     int height_ = getHeight();
-    if (
-            collision_image.isNull()
-            || collision_image.width() != width_ * 16
-            || collision_image.height() != height_ * 16
-    ) {
+    if (collision_image.isNull() || collision_image.width() != width_ * 16 || collision_image.height() != height_ * 16) {
         collision_image = QImage(width_ * 16, height_ * 16, QImage::Format_RGBA8888);
         changed_any = true;
     }
-    if (!(layout->blockdata && layout->blockdata->blocks && width_ && height_)) {
+    if (layout->blockdata.isEmpty() || !width_ || !height_) {
         collision_pixmap = collision_pixmap.fromImage(collision_image);
         return collision_pixmap;
     }
     QPainter painter(&collision_image);
-    for (int i = 0; i < layout->blockdata->blocks->length(); i++) {
-        if (!ignoreCache && layout->cached_collision && !mapBlockChanged(i, layout->cached_collision)) {
+    for (int i = 0; i < layout->blockdata.length(); i++) {
+        if (!ignoreCache && !mapBlockChanged(i, layout->cached_collision)) {
             continue;
         }
         changed_any = true;
-        Block block = layout->blockdata->blocks->value(i);
-        QImage metatile_image = getMetatileImage(block.tile, layout->tileset_primary, layout->tileset_secondary);
+        Block block = layout->blockdata.at(i);
+        QImage metatile_image = getMetatileImage(block.metatileId, layout->tileset_primary, layout->tileset_secondary, metatileLayerOrder, metatileLayerOpacity);
         QImage collision_metatile_image = getCollisionMetatileImage(block);
         int map_y = width_ ? i / width_ : 0;
         int map_x = width_ ? i % width_ : 0;
@@ -182,30 +157,28 @@ QPixmap Map::render(bool ignoreCache = false, MapLayout * fromLayout) {
     bool changed_any = false;
     int width_ = getWidth();
     int height_ = getHeight();
-    if (
-            image.isNull()
-            || image.width() != width_ * 16
-            || image.height() != height_ * 16
-    ) {
+    if (image.isNull() || image.width() != width_ * 16 || image.height() != height_ * 16) {
         image = QImage(width_ * 16, height_ * 16, QImage::Format_RGBA8888);
         changed_any = true;
     }
-    if (!(layout->blockdata && layout->blockdata->blocks && width_ && height_)) {
+    if (layout->blockdata.isEmpty() || !width_ || !height_) {
         pixmap = pixmap.fromImage(image);
         return pixmap;
     }
 
     QPainter painter(&image);
-    for (int i = 0; i < layout->blockdata->blocks->length(); i++) {
+    for (int i = 0; i < layout->blockdata.length(); i++) {
         if (!ignoreCache && !mapBlockChanged(i, layout->cached_blockdata)) {
             continue;
         }
         changed_any = true;
-        Block block = layout->blockdata->blocks->value(i);
+        Block block = layout->blockdata.at(i);
         QImage metatile_image = getMetatileImage(
-            block.tile,
+            block.metatileId,
             fromLayout ? fromLayout->tileset_primary   : layout->tileset_primary,
-            fromLayout ? fromLayout->tileset_secondary : layout->tileset_secondary
+            fromLayout ? fromLayout->tileset_secondary : layout->tileset_secondary,
+            metatileLayerOrder,
+            metatileLayerOpacity
         );
         int map_y = width_ ? i / width_ : 0;
         int map_x = width_ ? i % width_ : 0;
@@ -233,20 +206,20 @@ QPixmap Map::renderBorder(bool ignoreCache) {
         layout->border_image = QImage(width_ * 16, height_ * 16, QImage::Format_RGBA8888);
         border_resized = true;
     }
-    if (!(layout->border && layout->border->blocks)) {
+    if (layout->border.isEmpty()) {
         layout->border_pixmap = layout->border_pixmap.fromImage(layout->border_image);
         return layout->border_pixmap;
     }
     QPainter painter(&layout->border_image);
-    for (int i = 0; i < layout->border->blocks->length(); i++) {
+    for (int i = 0; i < layout->border.length(); i++) {
         if (!ignoreCache && (!border_resized && !borderBlockChanged(i, layout->cached_border))) {
             continue;
         }
 
         changed_any = true;
-        Block block = layout->border->blocks->value(i);
-        uint16_t tile = block.tile;
-        QImage metatile_image = getMetatileImage(tile, layout->tileset_primary, layout->tileset_secondary);
+        Block block = layout->border.at(i);
+        uint16_t metatileId = block.metatileId;
+        QImage metatile_image = getMetatileImage(metatileId, layout->tileset_primary, layout->tileset_secondary, metatileLayerOrder, metatileLayerOpacity);
         int map_y = width_ ? i / width_ : 0;
         int map_x = width_ ? i % width_ : 0;
         painter.drawImage(QPoint(map_x * 16, map_y * 16), metatile_image);
@@ -298,38 +271,38 @@ void Map::setNewDimensionsBlockdata(int newWidth, int newHeight) {
     int oldWidth = getWidth();
     int oldHeight = getHeight();
 
-    Blockdata* newBlockData = new Blockdata;
+    Blockdata newBlockdata;
 
     for (int y = 0; y < newHeight; y++)
     for (int x = 0; x < newWidth; x++) {
         if (x < oldWidth && y < oldHeight) {
             int index = y * oldWidth + x;
-            newBlockData->addBlock(layout->blockdata->blocks->value(index));
+            newBlockdata.append(layout->blockdata.value(index));
         } else {
-            newBlockData->addBlock(0);
+            newBlockdata.append(0);
         }
     }
 
-    layout->blockdata->copyFrom(newBlockData);
+    layout->blockdata = newBlockdata;
 }
 
 void Map::setNewBorderDimensionsBlockdata(int newWidth, int newHeight) {
     int oldWidth = getBorderWidth();
     int oldHeight = getBorderHeight();
 
-    Blockdata* newBlockData = new Blockdata;
+    Blockdata newBlockdata;
 
     for (int y = 0; y < newHeight; y++)
     for (int x = 0; x < newWidth; x++) {
         if (x < oldWidth && y < oldHeight) {
             int index = y * oldWidth + x;
-            newBlockData->addBlock(layout->border->blocks->value(index));
+            newBlockdata.append(layout->border.value(index));
         } else {
-            newBlockData->addBlock(0);
+            newBlockdata.append(0);
         }
     }
 
-    layout->border->copyFrom(newBlockData);
+    layout->border = newBlockdata;
 }
 
 void Map::setDimensions(int newWidth, int newHeight, bool setNewBlockdata) {
@@ -337,10 +310,17 @@ void Map::setDimensions(int newWidth, int newHeight, bool setNewBlockdata) {
         setNewDimensionsBlockdata(newWidth, newHeight);
     }
 
+    int oldWidth = layout->width.toInt();
+    int oldHeight = layout->height.toInt();
     layout->width = QString::number(newWidth);
     layout->height = QString::number(newHeight);
 
+    if (oldWidth != newWidth || oldHeight != newHeight) {
+        Scripting::cb_MapResized(oldWidth, oldHeight, newWidth, newHeight);
+    }
+
     emit mapChanged(this);
+    emit mapDimensionsChanged(QSize(getWidth(), getHeight()));
 }
 
 void Map::setBorderDimensions(int newWidth, int newHeight, bool setNewBlockdata) {
@@ -354,23 +334,35 @@ void Map::setBorderDimensions(int newWidth, int newHeight, bool setNewBlockdata)
     emit mapChanged(this);
 }
 
-Block* Map::getBlock(int x, int y) {
-    if (layout->blockdata && layout->blockdata->blocks) {
-        if (x >= 0 && x < getWidth() && y >= 0 && y < getHeight()) {
-            int i = y * getWidth() + x;
-            return new Block(layout->blockdata->blocks->value(i));
-        }
+bool Map::getBlock(int x, int y, Block *out) {
+    if (isWithinBounds(x, y)) {
+        int i = y * getWidth() + x;
+        *out = layout->blockdata.value(i);
+        return true;
     }
-    return nullptr;
+    return false;
 }
 
 void Map::setBlock(int x, int y, Block block, bool enableScriptCallback) {
     int i = y * getWidth() + x;
-    if (layout->blockdata && layout->blockdata->blocks && i < layout->blockdata->blocks->size()) {
-        Block prevBlock = layout->blockdata->blocks->value(i);
-        layout->blockdata->blocks->replace(i, block);
+    if (i < layout->blockdata.size()) {
+        Block prevBlock = layout->blockdata.at(i);
+        layout->blockdata.replace(i, block);
         if (enableScriptCallback) {
             Scripting::cb_MetatileChanged(x, y, prevBlock, block);
+        }
+    }
+}
+
+void Map::setBlockdata(Blockdata blockdata) {
+    int width = getWidth();
+    int size = qMin(blockdata.size(), layout->blockdata.size());
+    for (int i = 0; i < size; i++) {
+        Block prevBlock = layout->blockdata.at(i);
+        Block newBlock = blockdata.at(i);
+        if (prevBlock != newBlock) {
+            layout->blockdata.replace(i, newBlock);
+            Scripting::cb_MetatileChanged(i % width, i / width, prevBlock, newBlock);
         }
     }
 }
@@ -379,161 +371,89 @@ void Map::_floodFillCollisionElevation(int x, int y, uint16_t collision, uint16_
     QList<QPoint> todo;
     todo.append(QPoint(x, y));
     while (todo.length()) {
-            QPoint point = todo.takeAt(0);
-            x = point.x();
-            y = point.y();
-            Block *block = getBlock(x, y);
-            if (!block) {
-                continue;
-            }
-
-            uint old_coll = block->collision;
-            uint old_elev = block->elevation;
-            if (old_coll == collision && old_elev == elevation) {
-                continue;
-            }
-
-            block->collision = collision;
-            block->elevation = elevation;
-            setBlock(x, y, *block, true);
-            if ((block = getBlock(x + 1, y)) && block->collision == old_coll && block->elevation == old_elev) {
-                todo.append(QPoint(x + 1, y));
-            }
-            if ((block = getBlock(x - 1, y)) && block->collision == old_coll && block->elevation == old_elev) {
-                todo.append(QPoint(x - 1, y));
-            }
-            if ((block = getBlock(x, y + 1)) && block->collision == old_coll && block->elevation == old_elev) {
-                todo.append(QPoint(x, y + 1));
-            }
-            if ((block = getBlock(x, y - 1)) && block->collision == old_coll && block->elevation == old_elev) {
-                todo.append(QPoint(x, y - 1));
-            }
-    }
-}
-
-void Map::undo() {
-    bool redraw = false, changed = false;
-    HistoryItem *commit = metatileHistory.back();
-    if (!commit)
-        return;
-
-    if (layout->blockdata) {
-        layout->blockdata->copyFrom(commit->metatiles);
-        if (commit->layoutWidth != this->getWidth() || commit->layoutHeight != this->getHeight()) {
-            this->setDimensions(commit->layoutWidth, commit->layoutHeight, false);
-            redraw = true;
+        QPoint point = todo.takeAt(0);
+        x = point.x();
+        y = point.y();
+        Block block;
+        if (!getBlock(x, y, &block)) {
+            continue;
         }
-        changed = true;
-    }
-    if (layout->border) {
-        layout->border->copyFrom(commit->border);
-        if (commit->borderWidth != this->getBorderWidth() || commit->borderHeight != this->getBorderHeight()) {
-            this->setBorderDimensions(commit->borderWidth, commit->borderHeight, false);
-            redraw = true;
+
+        uint old_coll = block.collision;
+        uint old_elev = block.elevation;
+        if (old_coll == collision && old_elev == elevation) {
+            continue;
         }
-        changed = true;
-    }
 
-    if (redraw) {
-        emit mapNeedsRedrawing();
-    }
-    if (changed) {
-        emit mapChanged(this);
-    }
-}
-
-void Map::redo() {
-    bool redraw = false, changed = false;
-    HistoryItem *commit = metatileHistory.next();
-    if (!commit)
-        return;
-
-    if (layout->blockdata) {
-        layout->blockdata->copyFrom(commit->metatiles);
-        if (commit->layoutWidth != this->getWidth() || commit->layoutHeight != this->getHeight()) {
-            this->setDimensions(commit->layoutWidth, commit->layoutHeight, false);
-            redraw = true;
+        block.collision = collision;
+        block.elevation = elevation;
+        setBlock(x, y, block, true);
+        if (getBlock(x + 1, y, &block) && block.collision == old_coll && block.elevation == old_elev) {
+            todo.append(QPoint(x + 1, y));
         }
-        changed = true;
-    }
-    if (layout->border) {
-        layout->border->copyFrom(commit->border);
-        if (commit->borderWidth != this->getBorderWidth() || commit->borderHeight != this->getBorderHeight()) {
-            this->setBorderDimensions(commit->borderWidth, commit->borderHeight, false);
-            redraw = true;
+        if (getBlock(x - 1, y, &block) && block.collision == old_coll && block.elevation == old_elev) {
+            todo.append(QPoint(x - 1, y));
         }
-        changed = true;
-    }
-
-    if (redraw) {
-        emit mapNeedsRedrawing();
-    }
-    if (changed) {
-        emit mapChanged(this);
-    }
-}
-
-void Map::commit() {
-    if (!layout) {
-        return;
-    }
-
-    int layoutWidth = this->getWidth();
-    int layoutHeight = this->getHeight();
-    int borderWidth = this->getBorderWidth();
-    int borderHeight = this->getBorderHeight();
-
-    if (layout->blockdata) {
-        HistoryItem *item = metatileHistory.current();
-        bool atCurrentHistory = item
-                && layout->blockdata->equals(item->metatiles)
-                && layout->border->equals(item->border)
-                && layoutWidth == item->layoutWidth
-                && layoutHeight == item->layoutHeight
-                && borderWidth == item->borderWidth 
-                && borderHeight == item->borderHeight;
-        if (!atCurrentHistory) {
-            HistoryItem *commit = new HistoryItem(layout->blockdata->copy(), layout->border->copy(), layoutWidth, layoutHeight, borderWidth, borderHeight);
-            metatileHistory.push(commit);
-            emit mapChanged(this);
+        if (getBlock(x, y + 1, &block) && block.collision == old_coll && block.elevation == old_elev) {
+            todo.append(QPoint(x, y + 1));
+        }
+        if (getBlock(x, y - 1, &block) && block.collision == old_coll && block.elevation == old_elev) {
+            todo.append(QPoint(x, y - 1));
         }
     }
 }
 
 void Map::floodFillCollisionElevation(int x, int y, uint16_t collision, uint16_t elevation) {
-    Block *block = getBlock(x, y);
-    if (block && (block->collision != collision || block->elevation != elevation)) {
+    Block block;
+    if (getBlock(x, y, &block) && (block.collision != collision || block.elevation != elevation)) {
         _floodFillCollisionElevation(x, y, collision, elevation);
-        commit();
     }
 }
 
 void Map::magicFillCollisionElevation(int initialX, int initialY, uint16_t collision, uint16_t elevation) {
-    Block *block = getBlock(initialX, initialY);
-    if (block && (block->collision != collision || block->elevation != elevation)) {
-        uint old_coll = block->collision;
-        uint old_elev = block->elevation;
+    Block block;
+    if (getBlock(initialX, initialY, &block) && (block.collision != collision || block.elevation != elevation)) {
+        uint old_coll = block.collision;
+        uint old_elev = block.elevation;
 
         for (int y = 0; y < getHeight(); y++) {
             for (int x = 0; x < getWidth(); x++) {
-                block = getBlock(x, y);
-                if (block && block->collision == old_coll && block->elevation == old_elev) {
-                    block->collision = collision;
-                    block->elevation = elevation;
-                    setBlock(x, y, *block, true);
+                if (getBlock(x, y, &block) && block.collision == old_coll && block.elevation == old_elev) {
+                    block.collision = collision;
+                    block.elevation = elevation;
+                    setBlock(x, y, block, true);
                 }
             }
         }
-        commit();
     }
 }
 
-QList<Event *> Map::getAllEvents() {
-    QList<Event*> all;
-    for (QList<Event*> list : events.values()) {
-        all += list;
+QList<Event *> Map::getAllEvents() const {
+    QList<Event *> all_events;
+    for (const auto &event_list : events) {
+        all_events << event_list;
     }
-    return all;
+    return all_events;
+}
+
+QStringList Map::eventScriptLabels(const QString &event_group_type) const {
+    QStringList scriptLabels;
+    if (event_group_type.isEmpty()) {
+        for (const auto *event : getAllEvents())
+            scriptLabels << event->get("script_label");
+    } else {
+        for (const auto *event : events.value(event_group_type))
+            scriptLabels << event->get("script_label");
+    }
+
+    scriptLabels.removeAll("");
+    scriptLabels.removeDuplicates();
+    if (scriptLabels.contains("0x0"))
+        scriptLabels.move(scriptLabels.indexOf("0x0"), scriptLabels.count() - 1);
+    if (scriptLabels.contains("NULL"))
+        scriptLabels.move(scriptLabels.indexOf("NULL"), scriptLabels.count() - 1);
+
+    return scriptLabels;
 }
 
 void Map::removeEvent(Event *event) {
@@ -544,8 +464,13 @@ void Map::removeEvent(Event *event) {
 
 void Map::addEvent(Event *event) {
     events[event->get("event_group_type")].append(event);
+    if (!ownedEvents.contains(event)) ownedEvents.append(event);
 }
 
 bool Map::hasUnsavedChanges() {
-    return !metatileHistory.isSaved() || !isPersistedToFile || layout->has_unsaved_changes;
+    return !editHistory.isClean() || hasUnsavedDataChanges || !isPersistedToFile;
+}
+
+bool Map::isWithinBounds(int x, int y) {
+    return (x >= 0 && x < this->getWidth() && y >= 0 && y < this->getHeight());
 }

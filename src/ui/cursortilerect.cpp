@@ -4,11 +4,12 @@
 CursorTileRect::CursorTileRect(bool *enabled, QRgb color)
 {
     this->enabled = enabled;
-    this->visible = true;
+    this->active = true;
     this->color = color;
     this->width = 16;
     this->height = 16;
     this->smartPathMode = false;
+    this->straightPathMode = false;
     this->singleTileMode = false;
     this->anchored = false;
     this->rightClickSelectionAnchored = false;
@@ -18,9 +19,14 @@ CursorTileRect::CursorTileRect(bool *enabled, QRgb color)
     this->selectionHeight = 1;
 }
 
-void CursorTileRect::setVisibility(bool visible)
+void CursorTileRect::setActive(bool active)
 {
-    this->visible = visible;
+    this->active = active;
+}
+
+bool CursorTileRect::getActive()
+{
+    return active;
 }
 
 void CursorTileRect::initAnchor(int coordX, int coordY)
@@ -57,9 +63,14 @@ void CursorTileRect::updateSelectionSize(int width, int height)
     this->update();
 }
 
-void CursorTileRect::setSmartPathMode()
+void CursorTileRect::setSmartPathMode(bool enable)
 {
-    this->smartPathMode = true;
+    this->smartPathMode = enable;
+}
+
+void CursorTileRect::setStraightPathMode(bool enable)
+{
+    this->straightPathMode = enable;
 }
 
 void CursorTileRect::setSingleTileMode()
@@ -70,11 +81,6 @@ void CursorTileRect::setSingleTileMode()
 void CursorTileRect::stopSingleTileMode()
 {
     this->singleTileMode = false;
-}
-
-void CursorTileRect::setNormalPathMode()
-{
-    this->smartPathMode = false;
 }
 
 bool CursorTileRect::smartPathInEffect()
@@ -104,5 +110,5 @@ void CursorTileRect::updateLocation(int coordX, int coordY)
     coordY = qMax(coordY, 0);
     this->setX(coordX * 16);
     this->setY(coordY * 16);
-    this->setVisible(*this->enabled && this->visible);
+    this->setVisible(*this->enabled && this->active);
 }

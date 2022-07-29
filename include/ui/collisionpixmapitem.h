@@ -14,6 +14,7 @@ public:
         : MapPixmapItem(map, metatileSelector, settings){
         this->movementPermissionsSelector = movementPermissionsSelector;
         this->opacity = opacity;
+        map->setCollisionItem(this);
     }
     MovementPermissionsSelector *movementPermissionsSelector;
     qreal *opacity;
@@ -24,6 +25,10 @@ public:
     virtual void pick(QGraphicsSceneMouseEvent*);
     void draw(bool ignoreCache = false);
 
+private:
+    unsigned actionId_ = 0;
+    QPoint previousPos;
+
 signals:
     void mouseEvent(QGraphicsSceneMouseEvent *, CollisionPixmapItem *);
     void hoveredMapMovementPermissionChanged(int, int);
@@ -31,6 +36,7 @@ signals:
 
 protected:
     void hoverMoveEvent(QGraphicsSceneHoverEvent*);
+    void hoverEnterEvent(QGraphicsSceneHoverEvent*);
     void hoverLeaveEvent(QGraphicsSceneHoverEvent*);
     void mousePressEvent(QGraphicsSceneMouseEvent*);
     void mouseMoveEvent(QGraphicsSceneMouseEvent*);

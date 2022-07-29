@@ -25,6 +25,8 @@ Sort by Area
 Sort by Layout
     Organizes by map layouts. Most layouts are only used by a single map, but layouts like the Pokemon Center are used by many maps.
 
+Right-clicking on the folder name in any of the sort modes will bring up a dialog to create a new map in that folder. For more details, see: :ref:`Creating New Maps <creating-new-maps>`.
+
 The *Expand All* |expand-all-button| and *Collapse All* |collapse-all-button| buttons will expand or collapse all of the map folders.
 
 Type in the filter to show maps that contain the filter text.
@@ -71,7 +73,8 @@ Wild Pokémon Tab
 Tileset Editor
 --------------
 
-The Tileset Editor can be opened with *File -> Tileset Editor*.  When the Tileset Editor is opened, it is opened in the context of the currently-opened map.  Every map has a primary and secondary tileset, so you will work with a combination of the two whenever you use the Tileset Editor.  The left-side pane shows the primary and secondary tilesets' metatiles.  The right-side panes allow you to modify the currently-selected metatile.
+The Tileset Editor can be opened with *File -> Tileset Editor* (``Ctrl+T``).  
+Check out :ref:`The Tileset Editor <tse-ref>` section for more details.
 
 .. figure:: images/navigation/tileset-editor.png
     :alt: Tileset Editor
@@ -81,11 +84,13 @@ The Tileset Editor can be opened with *File -> Tileset Editor*.  When the Tilese
 Region Map Editor
 -----------------
 
-The Region Map Editor can be opened with *File -> Region Map Editor*. This window will allow you to modify the look and layout of maps on the game's region map.  You can also modify the city map images using the bottom two panes.
+The Region Map Editor can be opened with *File -> Region Map Editor* (``Ctrl+M``). 
+This window will allow you to modify the look and layout of maps on the game's region map.
+Check out :ref:`The Region Map Editor <rme-ref>` section for more details.
 
 .. figure:: images/navigation/region-map-editor.png
     :alt: Region Map Editor
 
     Region Map Editor
 
-We covered all of the basic views and windows of Porymap above.  Next, let's learn how to use Porymap's features to the fullest when editing map tiles.
+We covered all of the basic views and windows of porymap above.  Next, let's learn how to use Porymap's features to the fullest when editing map tiles.

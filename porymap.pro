@@ -12,16 +12,17 @@ TARGET = porymap
 TEMPLATE = app
 RC_ICONS = resources/icons/porymap-icon-2.ico
 ICON = resources/icons/porymap.icns
-QMAKE_CXXFLAGS += -std=c++11 -Wall
+QMAKE_CXXFLAGS += -std=c++17 -Wall
+QMAKE_TARGET_BUNDLE_PREFIX = com.pret
 
 SOURCES += src/core/block.cpp \
     src/core/blockdata.cpp \
     src/core/event.cpp \
     src/core/heallocation.cpp \
-    src/core/historyitem.cpp \
     src/core/imageexport.cpp \
     src/core/map.cpp \
     src/core/maplayout.cpp \
+    src/core/mapparser.cpp \
     src/core/metatile.cpp \
     src/core/metatileparser.cpp \
     src/core/paletteutil.cpp \
@@ -30,9 +31,15 @@ SOURCES += src/core/block.cpp \
     src/core/tileset.cpp \
     src/core/regionmap.cpp \
     src/core/wildmoninfo.cpp \
+    src/core/editcommands.cpp \
+    src/lib/fex/lexer.cpp \
+    src/lib/fex/parser.cpp \
+    src/lib/fex/parser_util.cpp \
     src/lib/orderedjson.cpp \
+    src/core/regionmapeditcommands.cpp \
     src/mainwindow_scriptapi.cpp \
     src/ui/aboutporymap.cpp \
+    src/ui/draggablepixmapitem.cpp \
     src/ui/bordermetatilespixmapitem.cpp \
     src/ui/collisionpixmapitem.cpp \
     src/ui/connectionpixmapitem.cpp \
@@ -67,6 +74,15 @@ SOURCES += src/core/block.cpp \
     src/ui/regionmapeditor.cpp \
     src/ui/newmappopup.cpp \
     src/ui/mapimageexporter.cpp \
+    src/ui/newtilesetdialog.cpp \
+    src/ui/flowlayout.cpp \
+    src/ui/mapruler.cpp \
+    src/ui/shortcut.cpp \
+    src/ui/shortcutseditor.cpp \
+    src/ui/multikeyedit.cpp \
+    src/ui/preferenceeditor.cpp \
+    src/ui/regionmappropertiesdialog.cpp \
+    src/ui/colorpicker.cpp \
     src/config.cpp \
     src/editor.cpp \
     src/main.cpp \
@@ -74,19 +90,18 @@ SOURCES += src/core/block.cpp \
     src/project.cpp \
     src/scripting.cpp \
     src/settings.cpp \
-    src/log.cpp \
-    src/ui/newtilesetdialog.cpp
+    src/log.cpp
 
 HEADERS  += include/core/block.h \
     include/core/blockdata.h \
     include/core/event.h \
     include/core/heallocation.h \
     include/core/history.h \
-    include/core/historyitem.h \
     include/core/imageexport.h \
     include/core/map.h \
     include/core/mapconnection.h \
     include/core/maplayout.h \
+    include/core/mapparser.h \
     include/core/metatile.h \
     include/core/metatileparser.h \
     include/core/paletteutil.h \
@@ -95,9 +110,18 @@ HEADERS  += include/core/block.h \
     include/core/tileset.h \
     include/core/regionmap.h \
     include/core/wildmoninfo.h \
+    include/core/editcommands.h \
+    include/core/regionmapeditcommands.h \
+    include/lib/fex/array.h \
+    include/lib/fex/array_value.h \
+    include/lib/fex/define_statement.h \
+    include/lib/fex/lexer.h \
+    include/lib/fex/parser.h \
+    include/lib/fex/parser_util.h \
     include/lib/orderedmap.h \
     include/lib/orderedjson.h \
     include/ui/aboutporymap.h \
+    include/ui/draggablepixmapitem.h \
     include/ui/bordermetatilespixmapitem.h \
     include/ui/collisionpixmapitem.h \
     include/ui/connectionpixmapitem.h \
@@ -132,15 +156,23 @@ HEADERS  += include/core/block.h \
     include/ui/regionmapeditor.h \
     include/ui/newmappopup.h \
     include/ui/mapimageexporter.h \
+    include/ui/newtilesetdialog.h \
+    include/ui/overlay.h \
+    include/ui/flowlayout.h \
+    include/ui/mapruler.h \
+    include/ui/shortcut.h \
+    include/ui/shortcutseditor.h \
+    include/ui/multikeyedit.h \
+    include/ui/preferenceeditor.h \
+    include/ui/regionmappropertiesdialog.h \
+    include/ui/colorpicker.h \
     include/config.h \
     include/editor.h \
     include/mainwindow.h \
     include/project.h \
     include/scripting.h \
     include/settings.h \
-    include/log.h \
-    include/ui/newtilesetdialog.h \
-    include/ui/overlay.h
+    include/log.h
 
 FORMS    += forms/mainwindow.ui \
     forms/eventpropertiesframe.ui \
@@ -150,13 +182,20 @@ FORMS    += forms/mainwindow.ui \
     forms/newmappopup.ui \
     forms/aboutporymap.ui \
     forms/newtilesetdialog.ui \
-    forms/mapimageexporter.ui
+    forms/mapimageexporter.ui \
+    forms/shortcutseditor.ui \
+    forms/preferenceeditor.ui \
+    forms/regionmappropertiesdialog.ui \
+    forms/colorpicker.ui
 
 RESOURCES += \
     resources/images.qrc \
-    resources/themes.qrc
+    resources/themes.qrc \
+    resources/text.qrc
 
 INCLUDEPATH += include
 INCLUDEPATH += include/core
 INCLUDEPATH += include/ui
 INCLUDEPATH += include/lib
+
+include(src/vendor/QtGifImage/gifimage/qtgifimage.pri)
