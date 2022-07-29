@@ -1,4 +1,4 @@
-# Porymap
+# Porymap - Linux builds
 
 [![Actions Status](https://github.com/huderlem/porymap/workflows/Build%20Porymap/badge.svg)](https://github.com/huderlem/porymap/actions)
 
