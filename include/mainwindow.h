@@ -25,6 +25,8 @@
 #include "newtilesetdialog.h"
 #include "shortcutseditor.h"
 #include "preferenceeditor.h"
+#include "projectsettingseditor.h"
+#include "customscriptseditor.h"
 
 
 
@@ -121,6 +123,8 @@ public:
     Q_INVOKABLE void setMetatileTerrainType(int metatileId, int terrainType);
     Q_INVOKABLE int getMetatileBehavior(int metatileId);
     Q_INVOKABLE void setMetatileBehavior(int metatileId, int behavior);
+    Q_INVOKABLE QString getMetatileBehaviorName(int metatileId);
+    Q_INVOKABLE void setMetatileBehaviorName(int metatileId, QString behavior);
     Q_INVOKABLE int getMetatileAttributes(int metatileId);
     Q_INVOKABLE void setMetatileAttributes(int metatileId, int attributes);
     Q_INVOKABLE QJSValue getMetatileTile(int metatileId, int tileIndex);
@@ -157,6 +161,7 @@ public:
 public slots:
     void on_mainTabBar_tabBarClicked(int index);
     void on_mapViewTab_tabBarClicked(int index);
+    void onWarpBehaviorWarningClicked();
 
 private slots:
     void on_action_Open_Project_triggered();
@@ -197,11 +202,7 @@ private slots:
     void on_checkBox_AllowBiking_stateChanged(int selected);
     void on_checkBox_AllowEscaping_stateChanged(int selected);
     void on_spinBox_FloorNumber_valueChanged(int offset);
-    void on_actionUse_Encounter_Json_triggered(bool checked);
-    void on_actionMonitor_Project_Files_triggered(bool checked);
-    void on_actionUse_Poryscript_triggered(bool checked);
-    void on_actionOpen_Recent_Project_On_Launch_triggered(bool checked);
-    void on_actionEdit_Shortcuts_triggered();
+    void on_actionShortcuts_triggered();
 
     void on_actionZoom_In_triggered();
     void on_actionZoom_Out_triggered();
@@ -278,14 +279,19 @@ private slots:
     void on_pushButton_DeleteCustomHeaderField_clicked();
     void on_tableWidget_CustomHeaderFields_cellChanged(int row, int column);
     void on_horizontalSlider_MetatileZoom_valueChanged(int value);
+    void on_horizontalSlider_CollisionZoom_valueChanged(int value);
     void on_pushButton_NewWildMonGroup_clicked();
     void on_pushButton_DeleteWildMonGroup_clicked();
     void on_pushButton_ConfigureEncountersJSON_clicked();
     void on_pushButton_CreatePrefab_clicked();
-
+    void on_spinBox_SelectedElevation_valueChanged(int elevation);
+    void on_spinBox_SelectedCollision_valueChanged(int collision);
     void on_actionRegion_Map_Editor_triggered();
-    void on_actionEdit_Preferences_triggered();
+    void on_actionPreferences_triggered();
     void togglePreferenceSpecificUi();
+    void on_actionProject_Settings_triggered();
+    void on_actionCustom_Scripts_triggered();
+    void reloadScriptEngine();
 
 public:
     Ui::MainWindow *ui;
@@ -299,6 +305,8 @@ private:
     QPointer<MapImageExporter> mapImageExporter = nullptr;
     QPointer<NewMapPopup> newMapPrompt = nullptr;
     QPointer<PreferenceEditor> preferenceEditor = nullptr;
+    QPointer<ProjectSettingsEditor> projectSettingsEditor = nullptr;
+    QPointer<CustomScriptsEditor> customScriptsEditor = nullptr;
     FilterChildrenProxyModel *mapListProxyModel;
     QStandardItemModel *mapListModel;
     QList<QStandardItem*> *mapGroupItemsList;
@@ -319,12 +327,7 @@ private:
     QWidget *eventTabBGWidget;
     QWidget *eventTabHealspotWidget;
     QWidget *eventTabMultipleWidget;
-
-    DraggablePixmapItem *selectedObject;
-    DraggablePixmapItem *selectedWarp;
-    DraggablePixmapItem *selectedTrigger;
-    DraggablePixmapItem *selectedBG;
-    DraggablePixmapItem *selectedHealspot;
+    QMap<Event::Group, DraggablePixmapItem*> lastSelectedEvent;
 
     bool isProgrammaticEventTabChange;
     bool projectHasUnsavedChanges;
@@ -333,7 +336,7 @@ private:
 
     MapSortOrder mapSortOrder;
 
-    bool needsFullRedraw = false;
+    bool tilesetNeedsRedraw = false;
 
     bool setMap(QString, bool scrollTreeView = false);
     void redrawMapScene();
@@ -342,11 +345,13 @@ private:
     bool loadProjectCombos();
     bool populateMapList();
     void sortMapList();
+    void openSubWindow(QWidget * window);
     QString getExistingDirectory(QString);
     bool openProject(QString dir);
-    QString getDefaultMap();
+    bool setInitialMap();
     void setRecentMap(QString map_name);
     QStandardItem* createMapItem(QString mapName, int groupNum, int inGroupNum);
+    void refreshRecentProjectsMenu();
 
     void drawMapListIcons(QAbstractItemModel *model);
     void updateMapList();
@@ -366,7 +371,7 @@ private:
     void initMapSortOrder();
     void initShortcuts();
     void initExtraShortcuts();
-    void setProjectSpecificUIVisibility();
+    void setProjectSpecificUI();
     void setWildEncountersUIEnabled(bool enabled);
     void loadUserSettings();
     void applyMapListFilter(QString filterText);
@@ -381,8 +386,9 @@ private:
     void initTilesetEditor();
     bool initRegionMapEditor(bool silent = false);
     void initShortcutsEditor();
+    void initCustomScriptsEditor();
     void connectSubEditorsToShortcutsEditor();
-
+    void openProjectSettingsEditor(int tab);
     bool isProjectOpen();
     void showExportMapImageWindow(ImageExporterMode mode);
     void redrawMetatileSelection();

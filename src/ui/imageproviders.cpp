@@ -1,17 +1,16 @@
 #include "config.h"
 #include "imageproviders.h"
 #include "log.h"
+#include "editor.h"
 #include <QPainter>
 
 QImage getCollisionMetatileImage(Block block) {
-    return getCollisionMetatileImage(block.collision, block.elevation);
+    return getCollisionMetatileImage(block.collision(), block.elevation());
 }
 
 QImage getCollisionMetatileImage(int collision, int elevation) {
-    static const QImage collisionImage(":/images/collisions.png");
-    int x = (collision != 0) * 16;
-    int y = elevation * 16;
-    return collisionImage.copy(x, y, 16, 16);
+    const QImage * image = Editor::collisionIcons.at(collision).at(elevation);
+    return image ? *image : QImage();
 }
 
 QImage getMetatileImage(
@@ -51,7 +50,7 @@ QImage getMetatileImage(
     QPainter metatile_painter(&metatile_image);
     bool isTripleLayerMetatile = projectConfig.getTripleLayerMetatilesEnabled();
     const int numLayers = 3; // When rendering, metatiles always have 3 layers
-    int layerType = metatile->layerType;
+    uint32_t layerType = metatile->layerType();
     for (int layer = 0; layer < numLayers; layer++)
     for (int y = 0; y < 2; y++)
     for (int x = 0; x < 2; x++) {
@@ -168,4 +167,13 @@ QImage getPalettedTileImage(uint16_t tileId, Tileset *primaryTileset, Tileset *s
 
 QImage getGreyscaleTileImage(uint16_t tileId, Tileset *primaryTileset, Tileset *secondaryTileset) {
     return getColoredTileImage(tileId, primaryTileset, secondaryTileset, greyscalePalette);
+}
+
+// gbagfx allows 4bpp image data to be represented with 8bpp .png files by considering only the lower 4 bits of each pixel.
+// Reproduce that here to support this type of image use.
+void flattenTo4bppImage(QImage * image) {
+    if (!image) return;
+    uchar * pixel = image->bits();
+    for (int i = 0; i < image->sizeInBytes(); i++, pixel++)
+        *pixel %= 16;
 }

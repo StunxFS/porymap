@@ -16,9 +16,22 @@ void SpeciesComboDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
 
     QPixmap pm;
     if (!QPixmapCache::find(species, &pm)) {
-        QImage img(this->project->speciesToIconPath.value(species));
-        img.setColor(0, qRgba(0, 0, 0, 0));
-        pm = QPixmap::fromImage(img);
+        // Prefer path from config. If not present, use the path parsed from project files
+        QString path = projectConfig.getPokemonIconPath(species);
+        if (path.isEmpty()) {
+            path = this->project->speciesToIconPath.value(species);
+        } else {
+            path = Project::getExistingFilepath(path);
+        }
+
+        QImage img(path);
+        if (img.isNull()) {
+            // No icon for this species, use placeholder
+            pm = QPixmap(":images/pokemon_icon_placeholder.png");
+        } else {
+            img.setColor(0, qRgba(0, 0, 0, 0));
+            pm = QPixmap::fromImage(img);
+        }
         QPixmapCache::insert(species, pm);
     }
     QPixmap monIcon = pm.copy(0, 0, 32, 32);
@@ -61,12 +74,8 @@ QWidget *SpinBoxDelegate::createEditor(QWidget *parent, const QStyleOptionViewIt
     editor->setFrame(false);
 
     int col = index.column();
-    if (col == EncounterTableModel::ColumnType::MinLevel) {
+    if (col == EncounterTableModel::ColumnType::MinLevel || col == EncounterTableModel::ColumnType::MaxLevel) {
         editor->setMinimum(this->project->miscConstants.value("min_level_define").toInt());
-        editor->setMaximum(index.siblingAtColumn(EncounterTableModel::ColumnType::MaxLevel).data(Qt::EditRole).toInt());
-    }
-    else if (col == EncounterTableModel::ColumnType::MaxLevel) {
-        editor->setMinimum(index.siblingAtColumn(EncounterTableModel::ColumnType::MinLevel).data(Qt::EditRole).toInt());
         editor->setMaximum(this->project->miscConstants.value("max_level_define").toInt());
     }
     else if (col == EncounterTableModel::ColumnType::EncounterRate) {

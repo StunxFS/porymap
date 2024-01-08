@@ -5,6 +5,9 @@
         <file>icons/cursor.ico</file>
         <file>icons/delete.ico</file>
         <file>icons/expand_all.ico</file>
+        <file>icons/file_add.ico</file>
+        <file>icons/file_edit.ico</file>
+        <file>icons/file_put.ico</file>
         <file>icons/fill_color_cursor.ico</file>
         <file>icons/fill_color.ico</file>
         <file>icons/folder_closed_map.ico</file>
@@ -24,6 +27,7 @@
         <file>icons/porymap-icon-1.ico</file>
         <file>icons/porymap-icon-2.ico</file>
         <file>icons/porymap.icns</file>
+        <file>icons/refresh.ico</file>
         <file>icons/shift_cursor.ico</file>
         <file>icons/shift.ico</file>
         <file>icons/sort_alphabet.ico</file>
@@ -57,7 +61,9 @@
         <file>icons/ui/midnight_branch_more.png</file>
         <file>images/blank_tileset.png</file>
         <file>images/collisions.png</file>
+        <file>images/collisions_unknown.png</file>
         <file>images/Entities_16x16.png</file>
+        <file>images/pokemon_icon_placeholder.png</file>
         <file>icons/clipboard.ico</file>
     </qresource>
 </RCC>

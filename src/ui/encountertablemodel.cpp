@@ -10,11 +10,10 @@ EncounterTableModel::EncounterTableModel(WildMonInfo info, EncounterFields field
 
     this->resize(this->monInfo.wildPokemon.size(), ColumnType::Count);
 
-    this->slotRatios = fields[fieldIndex].encounterRates;
-
     for (int r = 0; r < this->numRows; r++) {
         this->groupNames.append(QString());
         this->slotPercentages.append(0.0);
+        this->slotRatios.append(fields[fieldIndex].encounterRates.value(r, 0));
     }
 
     if (!this->encounterFields[this->fieldIndex].groups.empty()) {
@@ -155,13 +154,21 @@ bool EncounterTableModel::setData(const QModelIndex &index, const QVariant &valu
             this->monInfo.wildPokemon[row].species = value.toString();
             break;
 
-        case ColumnType::MinLevel:
-            this->monInfo.wildPokemon[row].minLevel = value.toInt();
+        case ColumnType::MinLevel: {
+            int minLevel = value.toInt();
+            this->monInfo.wildPokemon[row].minLevel = minLevel;
+            if (minLevel > this->monInfo.wildPokemon[row].maxLevel)
+                this->monInfo.wildPokemon[row].maxLevel = minLevel;
             break;
+        }
 
-        case ColumnType::MaxLevel:
-            this->monInfo.wildPokemon[row].maxLevel = value.toInt();
+        case ColumnType::MaxLevel: {
+            int maxLevel = value.toInt();
+            this->monInfo.wildPokemon[row].maxLevel = maxLevel;
+            if (maxLevel < this->monInfo.wildPokemon[row].minLevel)
+                this->monInfo.wildPokemon[row].minLevel = maxLevel;
             break;
+        }
 
         case ColumnType::EncounterRate:
             this->monInfo.encounterRate = value.toInt();

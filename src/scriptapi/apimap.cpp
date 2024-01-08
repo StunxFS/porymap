@@ -5,7 +5,7 @@
 #include "config.h"
 #include "imageproviders.h"
 
-// TODO: "needsFullRedraw" is used when redrawing the map after
+// TODO: "tilesetNeedsRedraw" is used when redrawing the map after
 // changing a metatile's tiles via script. It is unnecessarily
 // resource intensive. The map metatiles that need to be updated are
 // not marked as changed, so they will not be redrawn if the cache
@@ -16,13 +16,22 @@
 void MainWindow::tryRedrawMapArea(bool forceRedraw) {
     if (!forceRedraw) return;
 
-    if (this->needsFullRedraw) {
+    if (this->tilesetNeedsRedraw) {
+        // Refresh anything that can display metatiles
         this->editor->map_item->draw(true);
         this->editor->collision_item->draw(true);
         this->editor->selected_border_metatiles_item->draw();
         this->editor->updateMapBorder();
         this->editor->updateMapConnections();
-        this->needsFullRedraw = false;
+        if (this->tilesetEditor)
+            this->tilesetEditor->updateTilesets(this->editor->map->layout->tileset_primary_label, this->editor->map->layout->tileset_secondary_label);
+        if (this->editor->metatile_selector_item)
+            this->editor->metatile_selector_item->draw();
+        if (this->editor->selected_border_metatiles_item)
+            this->editor->selected_border_metatiles_item->draw();
+        if (this->editor->current_metatile_selection_item)
+            this->editor->current_metatile_selection_item->draw();
+        this->tilesetNeedsRedraw = false;
     } else {
         this->editor->map_item->draw();
         this->editor->collision_item->draw();
@@ -90,7 +99,7 @@ int MainWindow::getMetatileId(int x, int y) {
     if (!this->editor->map->getBlock(x, y, &block)) {
         return 0;
     }
-    return block.metatileId;
+    return block.metatileId();
 }
 
 void MainWindow::setMetatileId(int x, int y, int metatileId, bool forceRedraw, bool commitChanges) {
@@ -100,7 +109,7 @@ void MainWindow::setMetatileId(int x, int y, int metatileId, bool forceRedraw, b
     if (!this->editor->map->getBlock(x, y, &block)) {
         return;
     }
-    this->editor->map->setBlock(x, y, Block(metatileId, block.collision, block.elevation));
+    this->editor->map->setBlock(x, y, Block(metatileId, block.collision(), block.elevation()));
     this->tryCommitMapChanges(commitChanges);
     this->tryRedrawMapArea(forceRedraw);
 }
@@ -112,7 +121,7 @@ int MainWindow::getCollision(int x, int y) {
     if (!this->editor->map->getBlock(x, y, &block)) {
         return 0;
     }
-    return block.collision;
+    return block.collision();
 }
 
 void MainWindow::setCollision(int x, int y, int collision, bool forceRedraw, bool commitChanges) {
@@ -122,7 +131,7 @@ void MainWindow::setCollision(int x, int y, int collision, bool forceRedraw, boo
     if (!this->editor->map->getBlock(x, y, &block)) {
         return;
     }
-    this->editor->map->setBlock(x, y, Block(block.metatileId, collision, block.elevation));
+    this->editor->map->setBlock(x, y, Block(block.metatileId(), collision, block.elevation()));
     this->tryCommitMapChanges(commitChanges);
     this->tryRedrawMapArea(forceRedraw);
 }
@@ -134,7 +143,7 @@ int MainWindow::getElevation(int x, int y) {
     if (!this->editor->map->getBlock(x, y, &block)) {
         return 0;
     }
-    return block.elevation;
+    return block.elevation();
 }
 
 void MainWindow::setElevation(int x, int y, int elevation, bool forceRedraw, bool commitChanges) {
@@ -144,7 +153,7 @@ void MainWindow::setElevation(int x, int y, int elevation, bool forceRedraw, boo
     if (!this->editor->map->getBlock(x, y, &block)) {
         return;
     }
-    this->editor->map->setBlock(x, y, Block(block.metatileId, block.collision, elevation));
+    this->editor->map->setBlock(x, y, Block(block.metatileId(), block.collision(), elevation));
     this->tryCommitMapChanges(commitChanges);
     this->tryRedrawMapArea(forceRedraw);
 }
@@ -569,16 +578,6 @@ void MainWindow::saveMetatilesByMetatileId(int metatileId) {
     Tileset * tileset = Tileset::getMetatileTileset(metatileId, this->editor->map->layout->tileset_primary, this->editor->map->layout->tileset_secondary);
     if (this->editor->project && tileset)
         this->editor->project->saveTilesetMetatiles(tileset);
-
-    // Refresh anything that can display metatiles (except the actual map view)
-    if (this->tilesetEditor)
-        this->tilesetEditor->updateTilesets(this->editor->map->layout->tileset_primary_label, this->editor->map->layout->tileset_secondary_label);
-    if (this->editor->metatile_selector_item)
-        this->editor->metatile_selector_item->draw();
-    if (this->editor->selected_border_metatiles_item)
-        this->editor->selected_border_metatiles_item->draw();
-    if (this->editor->current_metatile_selection_item)
-        this->editor->current_metatile_selection_item->draw();
 }
 
 void MainWindow::saveMetatileAttributesByMetatileId(int metatileId) {
@@ -586,9 +585,15 @@ void MainWindow::saveMetatileAttributesByMetatileId(int metatileId) {
     if (this->editor->project && tileset)
         this->editor->project->saveTilesetMetatileAttributes(tileset);
 
-    // If the Tileset Editor is currently displaying the updated metatile, refresh it
-    if (this->tilesetEditor && this->tilesetEditor->getSelectedMetatileId() == metatileId)
-        this->tilesetEditor->updateTilesets(this->editor->map->layout->tileset_primary_label, this->editor->map->layout->tileset_secondary_label);
+    // If the tileset editor is open it needs to be refreshed with the new changes.
+    // Rather than do a full refresh (which is costly) we tell the editor it will need
+    // to reload the metatile from the project next time it's displayed.
+    // If it's currently being displayed, trigger this reload immediately.
+    if (this->tilesetEditor) {
+        this->tilesetEditor->queueMetatileReload(metatileId);
+        if (this->tilesetEditor->getSelectedMetatileId() == metatileId)
+            this->tilesetEditor->onSelectedMetatileChanged(metatileId);
+    }
 }
 
 Metatile * MainWindow::getMetatile(int metatileId) {
@@ -626,7 +631,7 @@ int MainWindow::getMetatileLayerType(int metatileId) {
     Metatile * metatile = this->getMetatile(metatileId);
     if (!metatile)
         return -1;
-    return metatile->layerType;
+    return metatile->layerType();
 }
 
 void MainWindow::setMetatileLayerType(int metatileId, int layerType) {
@@ -641,7 +646,7 @@ int MainWindow::getMetatileEncounterType(int metatileId) {
     Metatile * metatile = this->getMetatile(metatileId);
     if (!metatile)
         return -1;
-    return metatile->encounterType;
+    return metatile->encounterType();
 }
 
 void MainWindow::setMetatileEncounterType(int metatileId, int encounterType) {
@@ -656,7 +661,7 @@ int MainWindow::getMetatileTerrainType(int metatileId) {
     Metatile * metatile = this->getMetatile(metatileId);
     if (!metatile)
         return -1;
-    return metatile->terrainType;
+    return metatile->terrainType();
 }
 
 void MainWindow::setMetatileTerrainType(int metatileId, int terrainType) {
@@ -671,7 +676,7 @@ int MainWindow::getMetatileBehavior(int metatileId) {
     Metatile * metatile = this->getMetatile(metatileId);
     if (!metatile)
         return -1;
-    return metatile->behavior;
+    return metatile->behavior();
 }
 
 void MainWindow::setMetatileBehavior(int metatileId, int behavior) {
@@ -679,6 +684,25 @@ void MainWindow::setMetatileBehavior(int metatileId, int behavior) {
     if (!metatile)
         return;
     metatile->setBehavior(behavior);
+    this->saveMetatileAttributesByMetatileId(metatileId);
+}
+
+QString MainWindow::getMetatileBehaviorName(int metatileId) {
+    Metatile * metatile = this->getMetatile(metatileId);
+    if (!metatile || !this->editor->project)
+        return QString();
+    return this->editor->project->metatileBehaviorMapInverse.value(metatile->behavior(), QString());
+}
+
+void MainWindow::setMetatileBehaviorName(int metatileId, QString behavior) {
+    Metatile * metatile = this->getMetatile(metatileId);
+    if (!metatile || !this->editor->project)
+        return;
+    if (!this->editor->project->metatileBehaviorMap.contains(behavior)) {
+        logError(QString("Unknown metatile behavior '%1'").arg(behavior));
+        return;
+    }
+    metatile->setBehavior(this->editor->project->metatileBehaviorMap.value(behavior));
     this->saveMetatileAttributesByMetatileId(metatileId);
 }
 
@@ -735,7 +759,7 @@ void MainWindow::setMetatileTiles(int metatileId, QJSValue tilesObj, int tileSta
         metatile->tiles[tileStart] = Tile();
 
     this->saveMetatilesByMetatileId(metatileId);
-    this->needsFullRedraw = true;
+    this->tilesetNeedsRedraw = true;
     this->tryRedrawMapArea(forceRedraw);
 }
 
@@ -751,7 +775,7 @@ void MainWindow::setMetatileTiles(int metatileId, int tileId, bool xflip, bool y
         metatile->tiles[i] = tile;
 
     this->saveMetatilesByMetatileId(metatileId);
-    this->needsFullRedraw = true;
+    this->tilesetNeedsRedraw = true;
     this->tryRedrawMapArea(forceRedraw);
 }
 

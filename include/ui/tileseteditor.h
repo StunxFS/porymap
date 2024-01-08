@@ -47,16 +47,17 @@ public:
     bool selectMetatile(uint16_t metatileId);
     uint16_t getSelectedMetatileId();
     void setMetatileLabel(QString label);
+    void queueMetatileReload(uint16_t metatileId);
 
     QObjectList shortcutableObjects() const;
 
 public slots:
     void applyUserShortcuts();
+    void onSelectedMetatileChanged(uint16_t);
 
 private slots:
     void onHoveredMetatileChanged(uint16_t);
     void onHoveredMetatileCleared();
-    void onSelectedMetatileChanged(uint16_t);
     void onHoveredTileChanged(uint16_t);
     void onHoveredTileCleared();
     void onSelectedTilesChanged();
@@ -84,6 +85,8 @@ private slots:
     void on_actionShow_Unused_toggled(bool checked);
     void on_actionShow_Counts_toggled(bool checked);
     void on_actionShow_UnusedTiles_toggled(bool checked);
+    void on_actionMetatile_Grid_triggered(bool checked);
+    void on_actionLayer_Grid_triggered(bool checked);
 
     void on_actionUndo_triggered();
 
@@ -138,7 +141,6 @@ private:
     void copyMetatile(bool cut);
     void pasteMetatile(const Metatile * toPaste, QString label);
     bool replaceMetatile(uint16_t metatileId, const Metatile * src, QString label);
-    void setComboValue(QComboBox * combo, int value);
     void commitMetatileChange(Metatile * prevMetatile);
     void commitMetatileAndLabelChange(Metatile * prevMetatile, QString prevLabel);
 
@@ -164,6 +166,8 @@ private:
     QGraphicsScene *selectedTileScene = nullptr;
     QGraphicsPixmapItem *selectedTilePixmapItem = nullptr;
     QGraphicsScene *metatileLayersScene = nullptr;
+    bool lockSelection = false;
+    QSet<uint16_t> metatileReloadQueue;
 
 signals:
     void tilesetsSaved(QString, QString);
