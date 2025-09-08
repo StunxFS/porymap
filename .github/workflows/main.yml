@@ -29,9 +29,9 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
-          version: '5.14.2'
-          modules: 'qtwidgets qtqml'
-          cached: ${{ steps.cache-qt.outputs.cache-hit }}
+          version: 5.14.2
+          modules: 'qtcharts'
+          cache: 'true'
 
       - name: Configure
         run: qmake porymap.pro
